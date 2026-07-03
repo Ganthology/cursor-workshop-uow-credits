@@ -1,36 +1,89 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Cursor Credits Redeem Lookup
 
-## Getting Started
+Minimal Next.js app for workshop credit redemption. Participants enter their email to retrieve a randomly assigned redeem link. Admin uploads CSV lists and runs assignment.
 
-First, run the development server:
+## Setup
+
+### 1. Supabase
+
+1. Create a project at [supabase.com](https://supabase.com)
+2. Open **Settings → API Keys → Publishable and secret API keys** and copy your **secret key** (`sb_secret_...`)
+3. Open **SQL Editor** and run the migration in [`supabase/migrations/001_init.sql`](supabase/migrations/001_init.sql)
+
+### 2. Environment
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Fill in:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Variable | Description |
+|---|---|
+| `SUPABASE_URL` | Supabase project URL (Settings → API) |
+| `SUPABASE_SECRET_KEY` | Secret key (`sb_secret_...`, server-only — replaces legacy `service_role` key) |
+| `ADMIN_PASSWORD` | Password for `/admin` login |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Legacy env vars still work during migration: `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.
 
-## Learn More
+### 3. Run
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm install
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Public lookup: [http://localhost:3000](http://localhost:3000)
+- Admin dashboard: [http://localhost:3000/admin](http://localhost:3000/admin)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Admin workflow
 
-## Deploy on Vercel
+1. Sign in at `/admin` with your `ADMIN_PASSWORD`
+2. Upload **credit links CSV** — one URL per row
+3. Upload **participants CSV** — one email per row
+4. Click **Run assignment** — randomly pairs unassigned emails with available links (1:1, no repeats)
+5. Monitor stats and recent redemptions on the dashboard
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## CSV format
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Header row is optional. Single column per file.
+
+**credits.csv**
+
+```csv
+url
+https://cursor.com/redeem/abc123
+https://cursor.com/redeem/def456
+```
+
+**participants.csv**
+
+```csv
+email
+alice@example.com
+bob@example.com
+```
+
+Duplicates are skipped on upload. Assignment fails if there are more unassigned emails than available links.
+
+## User flow
+
+1. User enters email on the home page
+2. If email is registered and assigned → redeem link shown with copy button
+3. If registered but not yet assigned → "Your credit is being prepared"
+4. If not found → generic message (no email enumeration)
+5. Each successful lookup is logged in `redemption_logs`
+
+## Database tables
+
+| Table | Purpose |
+|---|---|
+| `credit_links` | Pool of redeem URLs |
+| `participants` | Emails with optional assigned link |
+| `redemption_logs` | Audit trail for lookups |
+
+All tables have RLS enabled with no public policies. Access is server-only via the secret key (`SUPABASE_SECRET_KEY`).
+
+## Deploy
+
+Works on Vercel or any Node.js host. Set the same env vars in your deployment settings.
