@@ -15,6 +15,14 @@ export type LookupResult =
 const RATE_LIMIT_MS = 30_000;
 
 function isWorkshopClosed(): boolean {
+  const closeAt = process.env.WORKSHOP_CLOSE_AT;
+  if (closeAt) {
+    const closeMs = new Date(closeAt).getTime();
+    if (!Number.isNaN(closeMs)) {
+      return Date.now() > closeMs;
+    }
+  }
+
   return process.env.WORKSHOP_CLOSED === "true";
 }
 
