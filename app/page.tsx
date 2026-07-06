@@ -1,4 +1,5 @@
 import { LookupForm } from "@/components/LookupForm";
+import { CommunitySlides } from "@/components/CommunitySlides";
 
 export default function Home() {
   return (
@@ -10,6 +11,7 @@ export default function Home() {
         </p>
       </div>
       <LookupForm />
+      <CommunitySlides />
     </main>
   );
 }

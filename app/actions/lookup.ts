@@ -9,9 +9,14 @@ export type LookupResult =
   | { status: "pending" }
   | { status: "found"; link: string }
   | { status: "error"; message: string }
-  | { status: "rate_limited" };
+  | { status: "rate_limited" }
+  | { status: "workshop_ended" };
 
 const RATE_LIMIT_MS = 30_000;
+
+function isWorkshopClosed(): boolean {
+  return process.env.WORKSHOP_CLOSED === "true";
+}
 
 export async function lookupCredit(email: string): Promise<LookupResult> {
   const normalized = normalizeEmail(email);
@@ -69,6 +74,20 @@ export async function lookupCredit(email: string): Promise<LookupResult> {
 
     if (!linkData?.url) {
       return { status: "pending" };
+    }
+
+    if (isWorkshopClosed()) {
+      const { data: priorLogs } = await supabase
+        .from("redemption_logs")
+        .select("id")
+        .eq("email", normalized)
+        .limit(1);
+
+      if (!priorLogs?.length) {
+        return { status: "workshop_ended" };
+      }
+
+      return { status: "found", link: linkData.url };
     }
 
     const headersList = await headers();

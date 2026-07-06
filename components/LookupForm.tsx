@@ -106,6 +106,12 @@ function ResultMessage({
           Please wait a moment before checking again.
         </p>
       );
+    case "workshop_ended":
+      return (
+        <p className="text-sm text-muted text-center">
+          The workshop redemption period has ended.
+        </p>
+      );
     case "error":
       return (
         <p className="text-sm text-error text-center">{state.message}</p>
